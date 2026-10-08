@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -Eeuo pipefail
+shopt -s nullglob
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MODS_DIR="/home/whats1ttoya/tests/mod_auto_update/mods"
@@ -16,7 +17,11 @@ check_mod() {
 
     local latest_version
     latest_version=$(
-        curl -s "https://api.modrinth.com/v2/project/$project/version?game_versions=%5B%22$MC_VERSION%22%5D&loaders=%5B%22$LOADER%22%5D" |
+        curl -sS \
+                -A "$USER_AGENT" \
+                --connect-timeout 10 \
+                --max-time 30 \
+                "https://api.modrinth.com/v2/project/$project/version?game_versions=%5B%22$MC_VERSION%22%5D&loaders=%5B%22$LOADER%22%5D" |
         jq -r '
             map(select(.version_type == "release"))
             | sort_by(.date_published)
@@ -24,12 +29,13 @@ check_mod() {
             | .version_number
         '
     )
+        latest_version=$(echo "$latest_version" | sed -E 's/^mc[0-9.]+-([0-9.]+)-fabric$/\1/')
 
     echo "Latest: $latest_version"
         if (( ${#mod_files[@]} > 0 )); then
                 local current_version
-                current_version=$(basename $MODS_DIR/$project-*.jar)
-                current_version=$(echo "$current_version" | sed -E 's/^${project}-${LOADER}-([0-9.]+)\+.*\.jar$/\1/')
+                current_version=$(basename "${mod_files[0]}")
+                current_version=$(echo "$current_version" | sed -E "s/^${project}-${LOADER}-([0-9.]+)\+.*\.jar$/\1/")
                 echo "Current: $current_version"
                 local status
                 status=false
