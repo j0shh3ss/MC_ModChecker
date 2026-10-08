@@ -4,20 +4,21 @@ set -Eeuo pipefail
 shopt -s nullglob
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-MODS_DIR="/home/whats1ttoya/tests/mod_auto_update/mods"
 
 source "$SCRIPT_DIR/config.sh"
+
 
 check_mod() {
     local mod_name="$1"
     local project="${MOD_PROJECTS[$mod_name]}"
+
         local mod_files=("$MODS_DIR"/"$project"-*.jar)
 
     echo "Checking $mod_name..."
 
     local latest_version
     latest_version=$(
-        curl -sS \
+        curl -fsS \
                 -A "$USER_AGENT" \
                 --connect-timeout 10 \
                 --max-time 30 \
@@ -29,12 +30,18 @@ check_mod() {
             | .version_number
         '
     )
-        latest_version=$(echo "$latest_version" | sed -E 's/^mc[0-9.]+-([0-9.]+)-fabric$/\1/')
+    latest_version=$(echo "$latest_version" | sed -E 's/^mc[0-9.]+-([0-9.]+)-fabric$/\1/')
+
+    if [[ -z "$latest_version" || "$latest_version" == "null" ]]; then
+                echo "ERROR: Could not determine latest version for $project."
+                return 1
+    fi
 
     echo "Latest: $latest_version"
         if (( ${#mod_files[@]} > 0 )); then
+                local mod_file="${mod_files[0]}"
                 local current_version
-                current_version=$(basename "${mod_files[0]}")
+                current_version=$(basename "$mod_file")
                 current_version=$(echo "$current_version" | sed -E "s/^${project}-${LOADER}-([0-9.]+)\+.*\.jar$/\1/")
                 echo "Current: $current_version"
                 local highest_version
