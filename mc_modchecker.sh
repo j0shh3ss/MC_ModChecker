@@ -37,19 +37,15 @@ check_mod() {
                 current_version=$(basename "${mod_files[0]}")
                 current_version=$(echo "$current_version" | sed -E "s/^${project}-${LOADER}-([0-9.]+)\+.*\.jar$/\1/")
                 echo "Current: $current_version"
-                local status
-                status=false
-                if echo -e "$current_version\n$latest_version" | sort -V -C; then
-                        if ["$current_version" != "$latest_version"]; then
-                                status=true
-                        else
-                                status=false
-                        fi
+                local highest_version
+                highest_version=$(printf '%s\n' "$current_version" "$latest_version" | sort -V | tail -n1)
+
+                if [[ "$current_version" != "$latest_version" && "$highest_version" == "$latest_version" ]]; then
+                        echo "$project has an update available: $current_version -> $latest_version"
+                elif [[ "$current_version" == "$latest_version" ]]; then
+                        echo "$project is up to date."
                 else
-                        status=false
-                fi
-                if [ "$status" = true ]; then
-                        echo "$project Has updates available, version: $current_version, is less than $latest_version"
+                        echo "$project is newer than the latest version avail. How?"
                 fi
         else
                 echo "Mod is not installed."
