@@ -1,23 +1,11 @@
 #!/bin/bash
+
 set -Eeuo pipefail
+
 SCRIPT_DIR="$(cd "$(dirname "0")" && pwd)"
+MODS_DIR="/home/whats1ttoya/tests/mod_auto_update/mods"
 
 source "$SCRIPT_DIR/config.sh"
-
-echo "Minecraft Version: $MC_VERSION"
-echo "Loader: $LOADER"
-echo "Mods Directory: $MODS_DIR"
-
-echo
-
-for mod in "${!MOD_PROJECTS[@]}"; do
-        project="${MOD_PROJECTS[$mod]}"
-
-        echo "Checking: $mod"
-        echo "Modrinth Project: $project"
-        echo
-done
-
 
 check_mod() {
     local mod_name="$1"
@@ -37,31 +25,30 @@ check_mod() {
     )
 
     echo "Latest: $latest_version"
-
-
-    echo
+        if  [ -f $MODS_DIR/$project-*.jar]; then
+                local current_version
+                current_version=$(basename $MODS_DIR/$project-*.jar)
+                current_version=$(echo "$current_version" | sed -E 's/^$project-$LOADER-([0-9.]+)\+.*\.jar$/\1/')
+                echo "Current: $current_version"
+                local status
+                status = false
+                if echo -e "$current_version\n$latest_version" | sort -V -C; then
+                        if ["$current_Version" != "$latest_version"]; then
+                                status = true
+                        else
+                                status = false
+                        fi
+                else
+                        status = false
+                fi
+                if [ status = true ]; then
+                        echo "$project Has updates available, version: $current_version, is less than $latest_version"
+                fi
+        else
+                echo "Mod is not installed."
+        fi 
 }
-MODS_DIR="/home/whats1ttoya/tests/mod_auto_update/mods"
 
-
-CURRENT_VERSION=$(basename $MODS_DIR/lithium-*.jar)
-CURRENT_VERSION=$(echo "$CURRENT_VERSION" | sed -E 's/^lithium-fabric-([0-9.]+)\+.*\.jar$/\1/')
-echo "Installed: $CURRENT_VERSION"
-
-
-
-OLD_VERSION=$(
-  curl -s "https://api.modrinth.com/v2/project/lithium/version?game_versions=%5B%2226.3%22%5D&loaders=%5B%22fabric%22%5D" |
-  jq -r 'sort_by(.date_published) | last | .version_number'
-)
-LATEST_VERSION=$(
-        curl -s "https://api.modrinth.com/v2/project/lithium/version?game_versions=%5B%2226.3%22%5D&loaders=%5B%22fabric%22%5D" |
-        jq -r '
-                map(select(.version_type == "release"))
-                | sort_by(.date_published)
-                | last
-                | .version_number
-        '
-)
-LATEST_VERSION=$(echo "$LATEST_VERSION" | sed -E 's/^mc[0-9.]+-([0-9.]+)-fabric$/\1/')
-echo "Available: $LATEST_VERSION"
+for mod in "${!MOD_PROJECTS[@]}"; do
+        check_mod "$mod"
+done
