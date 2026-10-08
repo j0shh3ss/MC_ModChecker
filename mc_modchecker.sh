@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MODS_DIR="/home/whats1ttoya/tests/mod_auto_update/mods"
 
 source "$SCRIPT_DIR/config.sh"
@@ -10,6 +10,7 @@ source "$SCRIPT_DIR/config.sh"
 check_mod() {
     local mod_name="$1"
     local project="${MOD_PROJECTS[$mod_name]}"
+        local mod_files=("$MODS_DIR"/"$project"-*.jar)
 
     echo "Checking $mod_name..."
 
@@ -25,23 +26,23 @@ check_mod() {
     )
 
     echo "Latest: $latest_version"
-        if  [ -f $MODS_DIR/$project-*.jar]; then
+        if (( ${#mod_files[@]} > 0 )); then
                 local current_version
                 current_version=$(basename $MODS_DIR/$project-*.jar)
-                current_version=$(echo "$current_version" | sed -E 's/^$project-$LOADER-([0-9.]+)\+.*\.jar$/\1/')
+                current_version=$(echo "$current_version" | sed -E 's/^${project}-${LOADER}-([0-9.]+)\+.*\.jar$/\1/')
                 echo "Current: $current_version"
                 local status
-                status = false
+                status=false
                 if echo -e "$current_version\n$latest_version" | sort -V -C; then
-                        if ["$current_Version" != "$latest_version"]; then
-                                status = true
+                        if ["$current_version" != "$latest_version"]; then
+                                status=true
                         else
-                                status = false
+                                status=false
                         fi
                 else
-                        status = false
+                        status=false
                 fi
-                if [ status = true ]; then
+                if [ "$status" = true ]; then
                         echo "$project Has updates available, version: $current_version, is less than $latest_version"
                 fi
         else
