@@ -19,7 +19,28 @@ for mod in "${!MOD_PROJECTS[@]}"; do
 done
 
 
-SCRIPT_DIR="$(cd "$(dirname "0")" && pwd)"
+check_mod() {
+    local mod_name="$1"
+    local project="${MOD_PROJECTS[$mod_name]}"
+
+    echo "Checking $mod_name..."
+
+    local latest_version
+    latest_version=$(
+        curl -s "https://api.modrinth.com/v2/project/$project/version?game_versions=%5B%22$MC_VERSION%22%5D&loaders=%5B%22$LOADER%22%5D" |
+        jq -r '
+            map(select(.version_type == "release"))
+            | sort_by(.date_published)
+            | last
+            | .version_number
+        '
+    )
+
+    echo "Latest: $latest_version"
+
+
+    echo
+}
 MODS_DIR="/home/whats1ttoya/tests/mod_auto_update/mods"
 
 
